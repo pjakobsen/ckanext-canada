@@ -13,10 +13,12 @@ DB_USER = $(shell bin/psql_user.py ${CKAN_CONFIG})
 POSTGIS = $(firstword $(wildcard \
     /usr/share/pgsql/contrib/postgis-64.sql \
     /usr/share/postgresql/*/contrib/postgis-1.5/postgis.sql \
+		/Applications/Postgres.app/Contents/MacOS/share/contrib/postgis-2.0/postgis.sql \
     ))
 SPATIAL_REF_SYS = $(firstword $(wildcard \
     /usr/share/pgsql/contrib/postgis-1.5/spatial_ref_sys.sql \
     /usr/share/postgresql/*/contrib/postgis-1.5/spatial_ref_sys.sql \
+		/Applications/Postgres.app/Contents/MacOS/share/contrib/postgis-2.0/spatial_ref_sys.sql \
     ))
 
 test:
@@ -24,13 +26,14 @@ test:
 	python `which nosetests` --with-pylons=test-core.ini ckanext/canada/tests 2>&1
 
 drop-database:
-	sudo -u postgres dropdb ${DB_NAME_PORT}
+	dropdb ${DB_NAME_PORT}
 
 create-database:
-	sudo -u postgres createdb ${DB_NAME_PORT} -O ${DB_USER} -E UTF-8
-	sudo -u postgres psql ${DB_NAME_PORT} < ${POSTGIS}
-	sudo -u postgres psql ${DB_NAME_PORT} -c "ALTER TABLE spatial_ref_sys OWNER TO ${DB_USER}"
-	sudo -u postgres psql ${DB_NAME_PORT} -c "ALTER TABLE geometry_columns OWNER TO ${DB_USER}"
+	createdb ${DB_NAME_PORT} -O ${DB_USER} -E UTF-8
+	psql ${DB_NAME_PORT} < ${POSTGIS}
+	psql ${DB_NAME_PORT} < /Applications/Postgres.app/Contents/MacOS/share/contrib/postgis-2.0/legacy.sql
+	psql ${DB_NAME_PORT} -c "ALTER TABLE spatial_ref_sys OWNER TO ${DB_USER}"
+	psql ${DB_NAME_PORT} -c "ALTER TABLE geometry_columns OWNER TO ${DB_USER}"
 	bash -c "${PSQL_COMMAND}" < ${SPATIAL_REF_SYS}
 	paster --plugin=ckan db init -c ${CKAN_CONFIG}
 	paster --plugin=ckan search-index clear -c ${CKAN_CONFIG}
